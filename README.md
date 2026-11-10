@@ -19,6 +19,13 @@ npm run preview  # serve the production build
 npm run lint     # oxlint
 ```
 
+## Supabase review reactions
+
+The like/dislike review feature requires the `public.review_reactions` table
+and its policies. Run [`supabase/review_reactions.sql`](./supabase/review_reactions.sql)
+in the Supabase SQL Editor, then reload the app. The script assumes
+`public.reviews.id` is a `bigint`, matching the current review API payload.
+
 ## Structure
 
 ```

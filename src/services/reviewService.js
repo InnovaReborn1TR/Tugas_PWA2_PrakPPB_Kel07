@@ -1,4 +1,5 @@
 import { apiClient, IS_SUPABASE } from '../config/api'
+import { getUserIdentifier } from './userService'
 
 // ---------------------------------------------------------------------------
 // ReviewService — product reviews & ratings.
@@ -14,8 +15,31 @@ class ReviewService {
       const data = await apiClient.get(
         `/rest/v1/reviews?product_id=eq.${gunId}&select=*&order=created_at.desc`,
       )
+      const reactions = await apiClient.get(
+        '/rest/v1/review_reactions?select=review_id,user_id,reaction',
+      )
+      const reactionByReview = new Map()
+      if (Array.isArray(reactions)) {
+        reactions.forEach((reaction) => {
+          const key = String(reaction.review_id)
+          const current = reactionByReview.get(key) || { likes: 0, dislikes: 0 }
+          if (reaction.reaction === 'like') current.likes += 1
+          if (reaction.reaction === 'dislike') current.dislikes += 1
+          reactionByReview.set(key, current)
+        })
+      }
+
+      const currentUserId = getUserIdentifier()
       const list = Array.isArray(data)
-        ? data.map((r) => ({
+        ? data.map((r) => {
+          const counts = reactionByReview.get(String(r.id)) || { likes: 0, dislikes: 0 }
+          const userReaction = Array.isArray(reactions)
+            ? reactions.find((reaction) => (
+              String(reaction.review_id) === String(r.id)
+              && String(reaction.user_id) === String(currentUserId)
+            ))?.reaction || null
+            : null
+          return {
             id: r.id,
             product_id: r.product_id,
             owner_id: r.user_id,
@@ -23,10 +47,11 @@ class ReviewService {
             rating: r.rating,
             comment: r.comment || '',
             created_at: r.created_at,
-            likes: Number(r.likes || r.like_count || 0),
-            dislikes: Number(r.dislikes || r.dislike_count || 0),
-            user_reaction: r.user_reaction || null,
-          }))
+            likes: counts.likes,
+            dislikes: counts.dislikes,
+            user_reaction: userReaction,
+          }
+        })
         : []
 
       return { success: true, data: list }
@@ -100,11 +125,11 @@ class ReviewService {
         await apiClient.delete(`/rest/v1/review_reactions?review_id=eq.${reviewId}&user_id=eq.${encodeURIComponent(userIdentifier)}`)
         return { success: true }
       }
-      const res = await apiClient.post('/rest/v1/review_reactions', {
+      const res = await apiClient.post('/rest/v1/review_reactions?on_conflict=review_id,user_id', {
         review_id: reviewId,
         user_id: userIdentifier,
         reaction,
-      }, { headers: { Prefer: 'return=representation' } })
+      }, { headers: { Prefer: 'resolution=merge-duplicates,return=representation' } })
       return { success: true, data: Array.isArray(res) ? res[0] : res }
     }
 

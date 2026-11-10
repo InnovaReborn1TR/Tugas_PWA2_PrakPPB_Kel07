@@ -8,6 +8,7 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
+  MoreVertical,
 } from 'lucide-react'
 import FavoriteButton from '../common/FavoriteButton'
 import { useReviews, useCreateReview } from '../../hooks/useReviews'
@@ -44,6 +45,7 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
   const [reviewSuccess, setReviewSuccess] = useState('')
   const [editingReview, setEditingReview] = useState(null)
   const [reviewMutationError, setReviewMutationError] = useState('')
+  const [openReviewMenu, setOpenReviewMenu] = useState(null)
   const [shareFeedback, setShareFeedback] = useState('')
 
   const avgRating = gun.average_rating || averageRating(reviews)
@@ -86,6 +88,7 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
   }
 
   const handleDeleteReview = async (review) => {
+    setOpenReviewMenu(null)
     if (!window.confirm('Delete this review permanently?')) return
     try {
       await reviewService.deleteReview(review.id)
@@ -318,7 +321,10 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
           <p className="detail-loading">Loading reviews…</p>
         ) : reviews.length > 0 ? (
           <ul className="review-list">
-            {reviews.map((rev) => (
+            {reviews.map((rev) => {
+              const isOwnReview = (rev.owner_id && String(rev.owner_id) === String(getUserIdentifier()))
+                || (!rev.owner_id && String(rev.user_identifier) === String(getUserIdentifier()))
+              return (
               <li key={rev.id} className="review-item">
                 <div className="review-head">
                   <span className="review-user">{rev.user_identifier || 'Anonymous'}</span>
@@ -334,24 +340,51 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
                   </span>
                 </div>
                 {rev.comment && <p className="review-comment">{rev.comment}</p>}
-                {(rev.owner_id && String(rev.owner_id) === String(getUserIdentifier()))
-                  || (!rev.owner_id && String(rev.user_identifier) === String(getUserIdentifier())) ? (
-                  <div className="review-controls">
-                    <button type="button" className="btn btn--outline btn--sm" onClick={() => {
-                      setEditingReview(rev)
-                      setRating(rev.rating)
-                      setComment(rev.comment || '')
-                    }}>Edit</button>
-                    <button type="button" className="btn btn--danger-ghost" onClick={() => handleDeleteReview(rev)}>Delete</button>
-                  </div>
-                ) : (
-                  <div className="review-controls">
-                    <button type="button" className="btn btn--outline btn--sm" onClick={() => handleReaction(rev, 'like')}>👍 {rev.likes || 0}</button>
-                    <button type="button" className="btn btn--outline btn--sm" onClick={() => handleReaction(rev, 'dislike')}>👎 {rev.dislikes || 0}</button>
-                  </div>
-                )}
+                <div className="review-controls">
+                  <button
+                    type="button"
+                    className={`btn btn--outline btn--sm${rev.user_reaction === 'like' ? ' review-reaction--active' : ''}`}
+                    onClick={() => handleReaction(rev, 'like')}
+                    aria-pressed={rev.user_reaction === 'like'}
+                  >
+                    👍 {rev.likes || 0}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn--outline btn--sm${rev.user_reaction === 'dislike' ? ' review-reaction--active' : ''}`}
+                    onClick={() => handleReaction(rev, 'dislike')}
+                    aria-pressed={rev.user_reaction === 'dislike'}
+                  >
+                    👎 {rev.dislikes || 0}
+                  </button>
+                  {isOwnReview && (
+                    <div className="review-menu">
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--sm review-menu-trigger"
+                        aria-label={`Review options for ${rev.user_identifier || 'your review'}`}
+                        aria-expanded={openReviewMenu === rev.id}
+                        onClick={() => setOpenReviewMenu(openReviewMenu === rev.id ? null : rev.id)}
+                      >
+                        <MoreVertical size={17} />
+                      </button>
+                      {openReviewMenu === rev.id && (
+                        <div className="review-menu-popover" role="menu">
+                          <button type="button" role="menuitem" onClick={() => {
+                            setEditingReview(rev)
+                            setRating(rev.rating)
+                            setComment(rev.comment || '')
+                            setOpenReviewMenu(null)
+                          }}>Edit</button>
+                          <button type="button" role="menuitem" onClick={() => handleDeleteReview(rev)}>Delete</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </li>
-            ))}
+              )
+            })}
           </ul>
         ) : (
           <p className="detail-empty">No reviews yet. Be the first!</p>

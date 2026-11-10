@@ -222,6 +222,12 @@
   background: #fafbfb;
 }
 
+.review-reaction--active {
+  border-color: var(--brass);
+  background: #fff8e8;
+  color: var(--ink);
+}
+
 .btn--danger {
   background: #c0392b;
   color: #fff;
@@ -843,6 +849,45 @@
   display: flex;
   gap: 8px;
   margin-top: 10px;
+}
+
+.review-menu {
+  position: relative;
+}
+
+.review-menu-trigger {
+  width: 38px;
+  min-width: 38px;
+  padding: 6px;
+}
+
+.review-menu-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 2;
+  min-width: 100px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgb(23 35 45 / 12%);
+}
+
+.review-menu-popover button {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-menu-popover button:hover,
+.review-menu-popover button:focus-visible {
+  background: #f3f5f6;
 }
 
 .review-head {
