@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import gunService from '../services/gunService'
-import { readQueryCache, writeQueryCache } from '../utils/queryCache'
 
 // ---------------------------------------------------------------------------
 // useGuns — fetch the paginated / filtered product list from the API.
@@ -21,14 +20,6 @@ export function useGuns(params = {}) {
 
   const fetchGuns = useCallback(async () => {
     try {
-      const cacheKey = `guns_${paramKey}`
-      const cached = readQueryCache(cacheKey)
-      if (cached) {
-        setGuns(cached.data || [])
-        setPagination(cached.pagination || null)
-        setLoading(false)
-        return
-      }
       setLoading(true)
       setError(null)
 
@@ -37,10 +28,6 @@ export function useGuns(params = {}) {
       if (response.success) {
         setGuns(response.data || [])
         setPagination(response.pagination || null)
-        writeQueryCache(cacheKey, {
-          data: response.data || [],
-          pagination: response.pagination || null,
-        })
       } else {
         setError(response.message || 'Failed to fetch products.')
       }

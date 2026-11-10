@@ -22,9 +22,6 @@ class ReviewService {
             rating: r.rating,
             comment: r.comment || '',
             created_at: r.created_at,
-            owner_id: r.user_id,
-            likes: r.likes || 0,
-            dislikes: r.dislikes || 0,
           }))
         : []
 
@@ -87,17 +84,6 @@ class ReviewService {
     }
 
     return apiClient.delete(`/api/v1/reviews/${reviewId}`)
-  }
-
-  async voteReview(reviewId, vote) {
-    if (IS_SUPABASE) {
-      const res = await apiClient.post('/rest/v1/review_votes', {
-        review_id: reviewId,
-        vote,
-      }, { headers: { Prefer: 'resolution=merge-duplicates,return=representation' } })
-      return { success: true, data: Array.isArray(res) ? res[0] : res }
-    }
-    return apiClient.post(`/api/v1/reviews/${reviewId}/${vote}`)
   }
 }
 

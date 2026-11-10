@@ -49,9 +49,6 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [uploading, setUploading] = useState(false)
-  const [imageFiles, setImageFiles] = useState([])
-  const [imagePreviews, setImagePreviews] = useState([])
-  const [imageUrls, setImageUrls] = useState([])
 
   // Specs & Steps
   const [specs, setSpecs] = useState([{ name: '', quantity: '' }])
@@ -92,7 +89,6 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
             is_featured: Boolean(data.is_featured),
           })
           setCurrentImageUrl(data.image_url || data.image || '/guns/pistol.svg')
-          setImageUrls(data.image_urls || [data.image_url || data.image || '/guns/pistol.svg'])
 
           if (data.ingredients && data.ingredients.length > 0) {
             setSpecs(data.ingredients.map((ing) => ({
@@ -168,18 +164,22 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
 
   // Handle new image file
   const handleImageChange = (e) => {
-    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    const files = Array.from(e.target.files || [])
-    const invalid = files.find((file) => file.size > 5 * 1024 * 1024 || !allowed.includes(file.type))
-    if (!files.length || invalid) {
-      setError('Each image must be JPG, PNG, or WebP under 5MB.')
+    const file = e.target.files[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size exceeds 5MB limit.')
       return
     }
-    setImageFiles(files)
-    setImageFile(files[0])
-    const previews = files.map((file) => URL.createObjectURL(file))
-    setImagePreviews(previews)
-    setImagePreview(previews[0])
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!allowed.includes(file.type)) {
+      setError('Allowed formats: .jpg, .jpeg, .png, .webp')
+      return
+    }
+
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
     setError('')
   }
 
@@ -187,11 +187,9 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
     if (!imageFile) return
     try {
       setUploading(true)
-      const results = await Promise.all(imageFiles.map((file) => uploadService.uploadImage(file)))
-      const urls = results.map((res) => res.data?.url).filter(Boolean)
-      if (urls.length) {
-        setCurrentImageUrl(urls[0])
-        setImageUrls(urls)
+      const res = await uploadService.uploadImage(imageFile)
+      if (res.success && res.data?.url) {
+        setCurrentImageUrl(res.data.url)
         setImageFile(null)
         setImagePreview(null)
         setSuccessMsg('New image uploaded successfully.')
@@ -200,7 +198,6 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
     } catch (err) {
       console.warn('Image upload failed, using local blob:', err)
       setCurrentImageUrl(imagePreview)
-      setImageUrls(imagePreviews)
       setImageFile(null)
       setImagePreview(null)
     } finally {
@@ -276,7 +273,6 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
       category: formData.category || 'makanan',
       description: formData.description.trim() || `${formData.type} caliber ${formData.caliber}.`,
       image_url: imagePreview || currentImageUrl || '/guns/pistol.svg',
-      image_urls: imageUrls.length ? imageUrls : [imagePreview || currentImageUrl || '/guns/pistol.svg'],
       prep_time: 15,
       cook_time: Number(formData.price) || 500,
       servings: Number(formData.servings) || 1,
@@ -365,7 +361,6 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
                 id="edit-gun-image"
                 type="file"
                 accept="image/jpeg,image/jpg,image/png,image/webp"
-                multiple
                 onChange={handleImageChange}
                 className="hidden-file-input"
               />

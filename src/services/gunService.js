@@ -1,5 +1,4 @@
 import { apiClient, IS_SUPABASE } from '../config/api'
-import { clearQueryCache } from '../utils/queryCache'
 
 // ---------------------------------------------------------------------------
 // Normalizer — standardizes product shape whether received from Supabase
@@ -50,9 +49,6 @@ export const normalizeProduct = (item) => {
     description: item.description || '',
     image_url: item.image_url || item.image || '/guns/pistol.svg',
     image: item.image_url || item.image || '/guns/pistol.svg',
-    image_urls: Array.isArray(item.image_urls) && item.image_urls.length > 0
-      ? item.image_urls
-      : [item.image_url || item.image || '/guns/pistol.svg'],
     ingredients: specsList,
     steps: stepsList,
   }
@@ -145,19 +141,15 @@ class GunService {
         description: data.description || '',
         specs: specsArray,
         image_url: data.image_url || null,
-        image_urls: Array.isArray(data.image_urls) ? data.image_urls : undefined,
       }
 
       const res = await apiClient.post('/rest/v1/products', payload, {
         headers: { Prefer: 'return=representation' },
       })
       const created = Array.isArray(res) ? res[0] : res
-      clearQueryCache()
       return { success: true, data: normalizeProduct(created) }
     }
-    const response = await apiClient.post('/api/v1/recipes', data)
-    clearQueryCache()
-    return response
+    return apiClient.post('/api/v1/recipes', data)
   }
 
   /**
@@ -183,18 +175,14 @@ class GunService {
       if (data.description !== undefined) payload.description = data.description
       if (specsArray !== undefined) payload.specs = specsArray
       if (data.image_url !== undefined) payload.image_url = data.image_url
-      if (data.image_urls !== undefined) payload.image_urls = data.image_urls
 
       const res = await apiClient.patch(`/rest/v1/products?id=eq.${id}`, payload, {
         headers: { Prefer: 'return=representation' },
       })
       const updated = Array.isArray(res) ? res[0] : res
-      clearQueryCache()
       return { success: true, data: normalizeProduct(updated) }
     }
-    const response = await apiClient.put(`/api/v1/recipes/${id}`, data)
-    clearQueryCache()
-    return response
+    return apiClient.put(`/api/v1/recipes/${id}`, data)
   }
 
   /**
@@ -213,40 +201,9 @@ class GunService {
   async deleteGun(id) {
     if (IS_SUPABASE) {
       await apiClient.delete(`/rest/v1/products?id=eq.${id}`)
-      clearQueryCache()
       return { success: true }
     }
-    const response = await apiClient.delete(`/api/v1/recipes/${id}`)
-    clearQueryCache()
-    return response
-  }
-
-  async archiveGun(id) {
-    if (IS_SUPABASE) {
-      const res = await apiClient.patch(`/rest/v1/products?id=eq.${id}`, {
-        is_archived: true,
-        updated_at: new Date().toISOString(),
-      }, { headers: { Prefer: 'return=representation' } })
-      clearQueryCache()
-      return { success: true, data: Array.isArray(res) ? res[0] : res }
-    }
-    const response = await apiClient.patch(`/api/v1/recipes/${id}`, { is_archived: true })
-    clearQueryCache()
-    return response
-  }
-
-  async restoreGun(id) {
-    if (IS_SUPABASE) {
-      const res = await apiClient.patch(`/rest/v1/products?id=eq.${id}`, {
-        is_archived: false,
-        updated_at: new Date().toISOString(),
-      }, { headers: { Prefer: 'return=representation' } })
-      clearQueryCache()
-      return { success: true, data: Array.isArray(res) ? res[0] : res }
-    }
-    const response = await apiClient.patch(`/api/v1/recipes/${id}`, { is_archived: false })
-    clearQueryCache()
-    return response
+    return apiClient.delete(`/api/v1/recipes/${id}`)
   }
 }
 

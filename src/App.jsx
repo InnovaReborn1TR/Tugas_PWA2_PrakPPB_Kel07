@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import Catalog from './pages/Catalog.jsx'
@@ -7,11 +7,12 @@ import ProfilePage from './pages/ProfilePage.jsx'
 import CreateGunPage from './pages/CreateGunPage.jsx'
 import EditGunPage from './pages/EditGunPage.jsx'
 import GunDetail from './components/gun/GunDetail.jsx'
+import About from './pages/About.jsx'
+import Contact from './pages/Contact.jsx'
 import PWABadge from './components/PWABadge.jsx'
 import ConfirmModal from './components/modals/ConfirmModal.jsx'
 import SplashScreen from './components/common/SplashScreen.jsx'
 import gunService from './services/gunService.js'
-import { setArchived } from './utils/archiveStorage'
 import './App.css'
 
 function App() {
@@ -22,27 +23,6 @@ function App() {
   const [editingGun, setEditingGun] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
-
-  useEffect(() => {
-    const catalogId = new URLSearchParams(window.location.search).get('catalog')
-    if (!catalogId) return
-
-    let active = true
-    const loadSharedCatalog = async () => {
-      try {
-        const response = await gunService.getGunById(catalogId)
-        if (active && response.success && response.data) {
-          setSelectedGun(response.data)
-          setMode('detail')
-          setTab('Catalog')
-        }
-      } catch {
-        // The catalog page remains available when a shared item was removed.
-      }
-    }
-    loadSharedCatalog()
-    return () => { active = false }
-  }, [])
 
   // Unified navigation handler
   const handleNavigate = (target, payload) => {
@@ -115,16 +95,6 @@ function App() {
             onBack={handleBackToList}
             onEdit={(g) => handleNavigate('Edit', g)}
             onDelete={(g) => setDeleteTarget(g)}
-            onArchive={async (g) => {
-              try {
-                await gunService.archiveGun(g.id)
-                setArchived(g.id, true)
-                handleBackToList()
-                setTab('Catalog')
-              } catch (err) {
-                alert(err.message || 'Failed to archive record.')
-              }
-            }}
           />
         )}
 
@@ -145,6 +115,8 @@ function App() {
             {tab === 'Profile' && (
               <ProfilePage onReplaySplash={() => setShowSplash(true)} />
             )}
+            {tab === 'About' && <About />}
+            {tab === 'Contact' && <Contact />}
           </>
         )}
       </main>

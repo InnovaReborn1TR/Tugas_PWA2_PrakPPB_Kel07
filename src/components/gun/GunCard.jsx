@@ -1,7 +1,5 @@
 import FavoriteButton from '../common/FavoriteButton'
 import { formatPrice, truncate } from '../../utils/helpers'
-import { Share2 } from 'lucide-react'
-import { shareCatalog } from '../../utils/share'
 
 /**
  * Product card used in the catalog grid.
@@ -12,19 +10,11 @@ import { shareCatalog } from '../../utils/share'
  * @param {Function} [props.onEdit]  — called when Edit is clicked (admin)
  * @param {Function} [props.onDelete]— called when Delete is clicked (admin)
  */
-export default function GunCard({ gun, onSelect, onEdit, onDelete, onArchive }) {
+export default function GunCard({ gun, onSelect, onEdit, onDelete }) {
   const imgSrc = gun.image_url || gun.image || '/guns/pistol.svg'
   const category = gun.type || gun.category || '—'
   const caliber = gun.caliber || gun.difficulty || ''
   const price = gun.price ?? gun.cook_time ?? 0
-  const handleShare = async (event) => {
-    event.stopPropagation()
-    try {
-      await shareCatalog(gun)
-    } catch (error) {
-      if (error?.name !== 'AbortError') window.alert(error.message || 'Unable to share catalog.')
-    }
-  }
 
   return (
     <li className="card">
@@ -41,7 +31,6 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete, onArchive }) 
           width="240"
           height="180"
           loading="lazy"
-          decoding="async"
         />
 
         <span className="name display">{gun.name}</span>
@@ -61,17 +50,6 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete, onArchive }) 
       {/* Floating actions row */}
       <div className="card-actions">
         <FavoriteButton gunId={gun.id || gun.name} />
-        {gun.id && (
-          <button
-            type="button"
-            className="card-act-btn"
-            onClick={handleShare}
-            aria-label={`Share ${gun.name}`}
-            title="Share catalog"
-          >
-            <Share2 size={16} />
-          </button>
-        )}
 
         {onEdit && (
           <button
@@ -94,17 +72,6 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete, onArchive }) 
             title="Delete"
           >
             🗑️
-          </button>
-        )}
-        {onArchive && (
-          <button
-            type="button"
-            className="card-act-btn"
-            onClick={(e) => { e.stopPropagation(); onArchive(gun) }}
-            aria-label={`Archive ${gun.name}`}
-            title="Archive"
-          >
-            📦
           </button>
         )}
       </div>

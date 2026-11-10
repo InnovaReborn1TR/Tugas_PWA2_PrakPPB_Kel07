@@ -1,11 +1,9 @@
 import { useState } from 'react'
-import { ArrowLeft, Star, Send, Loader, Share2 } from 'lucide-react'
+import { ArrowLeft, Star, Send, Loader } from 'lucide-react'
 import FavoriteButton from '../common/FavoriteButton'
 import { useReviews, useCreateReview } from '../../hooks/useReviews'
-import reviewService from '../../services/reviewService'
 import { getUserIdentifier } from '../../services/userService'
 import { formatPrice, averageRating } from '../../utils/helpers'
-import { shareCatalog } from '../../utils/share'
 
 /**
  * Full-screen product detail view.
@@ -16,11 +14,8 @@ import { shareCatalog } from '../../utils/share'
  * @param {Function} [props.onEdit]  — navigate to edit page
  * @param {Function} [props.onDelete]— trigger delete flow
  */
-export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) {
+export default function GunDetail({ gun, onBack, onEdit, onDelete }) {
   const imgSrc = gun.image_url || gun.image || '/guns/pistol.svg'
-  const imageUrls = Array.isArray(gun.image_urls) && gun.image_urls.length > 0
-    ? gun.image_urls
-    : [imgSrc]
   const category = gun.type || gun.category || '—'
   const caliber = gun.caliber || gun.difficulty || ''
   const price = gun.price ?? gun.cook_time ?? 0
@@ -32,19 +27,6 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
   const [comment, setComment] = useState('')
   const [reviewError, setReviewError] = useState('')
   const [reviewSuccess, setReviewSuccess] = useState('')
-  const [shareMessage, setShareMessage] = useState('')
-  const [editingReview, setEditingReview] = useState(null)
-  const [reviewVotes, setReviewVotes] = useState({})
-
-  const handleShare = async () => {
-    try {
-      const result = await shareCatalog(gun)
-      setShareMessage(result === 'copied' ? 'Catalog link copied.' : 'Catalog shared.')
-      setTimeout(() => setShareMessage(''), 2500)
-    } catch (error) {
-      if (error?.name !== 'AbortError') setShareMessage(error.message || 'Unable to share catalog.')
-    }
-  }
 
   const avgRating = gun.average_rating || averageRating(reviews)
   const reviewCount = gun.review_count ?? reviews.length
@@ -75,31 +57,6 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
     }
   }
 
-  const handleUpdateReview = async (event) => {
-    event.preventDefault()
-    if (!editingReview) return
-    try {
-      await reviewService.updateReview(editingReview.id, editingReview)
-      setEditingReview(null)
-      refetchReviews()
-    } catch (error) {
-      setReviewError(error.message || 'Could not update review.')
-    }
-  }
-
-  const handleVote = async (review, vote) => {
-    const current = reviewVotes[review.id]
-    const next = current === vote ? null : vote
-    setReviewVotes((votes) => ({ ...votes, [review.id]: next }))
-    if (next) {
-      try {
-        await reviewService.voteReview(review.id, next)
-      } catch {
-        // Keep the local vote usable when the optional vote endpoint is unavailable.
-      }
-    }
-  }
-
   return (
     <div className="detail">
       {/* Back button */}
@@ -109,16 +66,7 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
 
       {/* Hero */}
       <div className="detail-hero">
-        <div className="detail-gallery">
-          <img className="detail-img" src={imgSrc} alt={gun.name} decoding="async" />
-          {imageUrls.length > 1 && (
-            <div className="detail-gallery-thumbs" aria-label="Catalog images">
-              {imageUrls.map((url, index) => (
-                <img key={`${url}-${index}`} src={url} alt={`${gun.name} ${index + 1}`} loading="lazy" decoding="async" />
-              ))}
-            </div>
-          )}
-        </div>
+        <img className="detail-img" src={imgSrc} alt={gun.name} />
         <div className="detail-info">
           <h1 className="display">{gun.name}</h1>
           <p className="type">
@@ -136,11 +84,6 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
 
           <div className="detail-actions">
             <FavoriteButton gunId={gun.id || gun.name} />
-            {gun.id && (
-              <button type="button" className="btn btn--outline" onClick={handleShare}>
-                <Share2 size={16} /> Share
-              </button>
-            )}
             {onEdit && (
               <button type="button" className="btn btn--outline" onClick={() => onEdit(gun)}>
                 Edit
@@ -151,13 +94,7 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
                 Delete
               </button>
             )}
-            {onArchive && (
-              <button type="button" className="btn btn--outline" onClick={() => onArchive(gun)}>
-                Archive
-              </button>
-            )}
           </div>
-          {shareMessage && <p className="form-success" role="status">{shareMessage}</p>}
         </div>
       </div>
 
@@ -269,16 +206,6 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
                   </span>
                 </div>
                 {rev.comment && <p className="review-comment">{rev.comment}</p>}
-                <div className="review-actions">
-                  <button type="button" className="btn btn--outline btn--sm" onClick={() => handleVote(rev, 'like')} aria-pressed={reviewVotes[rev.id] === 'like'}>👍 {rev.likes || 0}</button>
-                  <button type="button" className="btn btn--outline btn--sm" onClick={() => handleVote(rev, 'dislike')} aria-pressed={reviewVotes[rev.id] === 'dislike'}>👎 {rev.dislikes || 0}</button>
-                  {(rev.owner_id === getUserIdentifier() || rev.user_identifier === getUserIdentifier()) && (
-                    <>
-                      <button type="button" className="btn btn--outline btn--sm" onClick={() => setEditingReview({ id: rev.id, rating: rev.rating, comment: rev.comment || '' })}>Edit</button>
-                      <button type="button" className="btn btn--danger-ghost btn--sm" onClick={async () => { if (window.confirm('Delete this review?')) { await reviewService.deleteReview(rev.id); refetchReviews() } }}>Delete</button>
-                    </>
-                  )}
-                </div>
               </li>
             ))}
           </ul>
@@ -286,16 +213,6 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
           <p className="detail-empty">No reviews yet. Be the first!</p>
         )}
       </section>
-      {editingReview && (
-        <div className="profile-modal-backdrop">
-          <form className="profile-modal" onSubmit={handleUpdateReview}>
-            <h2>Edit Review</h2>
-            <label htmlFor="edit-review-comment" className="form-label">Comment</label>
-            <textarea id="edit-review-comment" className="form-textarea" rows={4} value={editingReview.comment} onChange={(event) => setEditingReview({ ...editingReview, comment: event.target.value })} />
-            <div className="form-actions-bar"><button type="button" className="btn btn--outline" onClick={() => setEditingReview(null)}>Cancel</button><button type="submit" className="btn btn--primary">Save Review</button></div>
-          </form>
-        </div>
-      )}
     </div>
   )
 }

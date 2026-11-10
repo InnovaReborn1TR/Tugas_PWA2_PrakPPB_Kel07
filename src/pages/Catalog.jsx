@@ -7,7 +7,6 @@ import GunDetail from '../components/gun/GunDetail'
 import AdvancedFilter from '../components/common/AdvancedFilter'
 import ConfirmModal from '../components/modals/ConfirmModal'
 import gunService from '../services/gunService'
-import { isArchived, setArchived } from '../utils/archiveStorage'
 import {
   matchesSearch,
   matchesCategory,
@@ -33,11 +32,9 @@ export default function Catalog({ onNavigate }) {
   const rawGuns = useMemo(() => {
     if (useLocal || (error && apiGuns.length === 0)) {
       // Enrich local data with synthetic ids so FavoriteButton and detail work
-      return GUNS_LOCAL
-        .map((g, i) => ({ ...g, id: g.id || `local-${i}` }))
-        .filter((gun) => !gun.is_archived && !isArchived(gun.id))
+      return GUNS_LOCAL.map((g, i) => ({ ...g, id: g.id || `local-${i}` }))
     }
-    return apiGuns.filter((gun) => !gun.is_archived && !isArchived(gun.id))
+    return apiGuns
   }, [apiGuns, error, useLocal])
 
   // ---- filters / sort ----
@@ -86,16 +83,6 @@ export default function Catalog({ onNavigate }) {
         onBack={() => setSelectedGun(null)}
         onEdit={(g) => onNavigate && onNavigate('Edit', g)}
         onDelete={(g) => { setSelectedGun(null); setDeleteTarget(g) }}
-        onArchive={async (g) => {
-          try {
-            await gunService.archiveGun(g.id)
-            setArchived(g.id, true)
-            setSelectedGun(null)
-            refetch()
-          } catch (err) {
-            setDeleteError(err.message || 'Failed to archive.')
-          }
-        }}
       />
     )
   }
@@ -186,14 +173,6 @@ export default function Catalog({ onNavigate }) {
                 onSelect={setSelectedGun}
                 onEdit={onNavigate ? (g) => onNavigate('Edit', g) : undefined}
                 onDelete={setDeleteTarget}
-                onArchive={async (g) => {
-                  try {
-                    await gunService.archiveGun(g.id)
-                    refetch()
-                  } catch (err) {
-                    setDeleteError(err.message || 'Failed to archive.')
-                  }
-                }}
               />
             ))}
           </ul>
