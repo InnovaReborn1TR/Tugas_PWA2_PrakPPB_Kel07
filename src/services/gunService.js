@@ -71,10 +71,6 @@ class GunService {
     if (IS_SUPABASE) {
       const queryParts = ['select=*']
 
-      if (!params.includeArchived) {
-        queryParts.push('is_archived=eq.false')
-      }
-
       if (params.search) {
         queryParts.push(`name=ilike.*${encodeURIComponent(params.search)}*`)
       }
