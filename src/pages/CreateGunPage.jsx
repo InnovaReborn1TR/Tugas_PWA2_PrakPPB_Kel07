@@ -420,6 +420,16 @@ export default function CreateGunPage({ onBack, onSuccess }) {
                   <X size={18} />
                 </button>
               </div>
+              {imagePreviews.length > 1 && (
+                <div className="upload-preview-grid" aria-label={`${imagePreviews.length} selected images`}>
+                  {imagePreviews.map((preview, index) => (
+                    <img key={`${preview}-${index}`} src={preview} alt={`Selected image ${index + 1}`} className="upload-preview-thumb" loading="lazy" />
+                  ))}
+                </div>
+              )}
+              {imagePreviews.length > 1 && (
+                <p className="form-hint">{imagePreviews.length} images selected. They will be saved to this catalog.</p>
+              )}
 
               <div className="preview-actions">
                 <button
