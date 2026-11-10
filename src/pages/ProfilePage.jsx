@@ -16,7 +16,7 @@ export default function ProfilePage({ onReplaySplash }) {
   const [copied, setCopied] = useState(false)
   const [feedback, setFeedback] = useState('')
   const { favorites } = useFavorites()
-  const { guns, refetch } = useGuns({ limit: 100 })
+  const { guns, refetch } = useGuns({ limit: 100, includeArchived: true })
   const [draftIds, setDraftIds] = useState(getAllDraftIds)
   const [archivedIds, setArchivedIds] = useState(getArchivedIds)
 
