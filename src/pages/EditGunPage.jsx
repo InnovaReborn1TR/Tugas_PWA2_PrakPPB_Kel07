@@ -373,11 +373,16 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
         <div className="card-box">
           <h2 className="card-box-title">Visual Asset</h2>
           <div className="edit-img-wrap">
-            <img
-              src={imagePreview || currentImageUrl}
-              alt="Current hardware"
-              className="edit-current-img"
-            />
+            <div className="edit-image-gallery">
+              {(imagePreviews.length ? imagePreviews : currentImageUrls.length ? currentImageUrls : [currentImageUrl]).map((url, index) => (
+                <img
+                  key={`${url}-${index}`}
+                  src={url}
+                  alt={`Current hardware ${index + 1}`}
+                  className="edit-current-img"
+                />
+              ))}
+            </div>
             <div className="edit-img-controls">
               <input
                 id="edit-gun-image"

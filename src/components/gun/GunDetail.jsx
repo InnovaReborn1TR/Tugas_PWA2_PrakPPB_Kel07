@@ -1,5 +1,14 @@
 import { useState } from 'react'
-import { ArrowLeft, Star, Send, Loader, Share2, Archive } from 'lucide-react'
+import {
+  ArrowLeft,
+  Star,
+  Send,
+  Loader,
+  Share2,
+  Archive,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
 import FavoriteButton from '../common/FavoriteButton'
 import { useReviews, useCreateReview } from '../../hooks/useReviews'
 import { getUserIdentifier } from '../../services/userService'
@@ -19,6 +28,8 @@ import { shareCatalog } from '../../utils/share'
 export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) {
   const imgSrc = gun.image_url || gun.image || '/guns/pistol.svg'
   const images = Array.isArray(gun.images) && gun.images.length ? gun.images : [imgSrc]
+  const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const safeImageIndex = Math.min(activeImageIndex, images.length - 1)
   const category = gun.type || gun.category || '—'
   const caliber = gun.caliber || gun.difficulty || ''
   const price = gun.price ?? gun.cook_time ?? 0
@@ -37,6 +48,12 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
 
   const avgRating = gun.average_rating || averageRating(reviews)
   const reviewCount = gun.review_count ?? reviews.length
+  const showPreviousImage = () => {
+    setActiveImageIndex((index) => (index - 1 + images.length) % images.length)
+  }
+  const showNextImage = () => {
+    setActiveImageIndex((index) => (index + 1) % images.length)
+  }
 
   const handleSubmitReview = async (e) => {
     e.preventDefault()
@@ -108,18 +125,52 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
       {/* Hero */}
       <div className="detail-hero">
         <div className="detail-gallery">
-          {images.map((image, index) => (
+          <div className="detail-gallery-stage">
             <img
-              key={`${image}-${index}`}
               className="detail-img"
-              src={image}
-              alt={`${gun.name} view ${index + 1}`}
+              src={images[safeImageIndex]}
+              alt={`${gun.name} view ${safeImageIndex + 1} of ${images.length}`}
               width="520"
               height="390"
-              loading={index === 0 ? 'eager' : 'lazy'}
+              loading="eager"
               decoding="async"
             />
-          ))}
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="detail-gallery-control detail-gallery-control--prev"
+                  onClick={showPreviousImage}
+                  aria-label="Show previous catalog image"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+                <button
+                  type="button"
+                  className="detail-gallery-control detail-gallery-control--next"
+                  onClick={showNextImage}
+                  aria-label="Show next catalog image"
+                >
+                  <ChevronRight size={22} />
+                </button>
+              </>
+            )}
+          </div>
+          {images.length > 1 && (
+            <div className="detail-gallery-dots" role="tablist" aria-label="Catalog images">
+              {images.map((image, index) => (
+                <button
+                  key={`${image}-${index}`}
+                  type="button"
+                  className={`detail-gallery-dot ${index === safeImageIndex ? 'detail-gallery-dot--active' : ''}`}
+                  onClick={() => setActiveImageIndex(index)}
+                  role="tab"
+                  aria-selected={index === safeImageIndex}
+                  aria-label={`Show catalog image ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <div className="detail-info">
           <h1 className="display">{gun.name}</h1>

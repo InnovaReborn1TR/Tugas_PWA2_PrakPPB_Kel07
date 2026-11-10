@@ -12,11 +12,21 @@ import {
 export const normalizeProduct = (item) => {
   if (!item) return null
 
-  const images = Array.isArray(item.images)
-    ? item.images.filter(Boolean)
+  let storedImages = item.images
+  if (!Array.isArray(storedImages) && typeof item.image_url === 'string') {
+    try {
+      const parsed = JSON.parse(item.image_url)
+      if (Array.isArray(parsed)) storedImages = parsed
+    } catch {
+      // image_url is a regular URL for older records.
+    }
+  }
+  const images = Array.isArray(storedImages) && storedImages.length
+    ? storedImages.filter(Boolean)
     : item.image_url || item.image
       ? [item.image_url || item.image]
       : ['/guns/pistol.svg']
+  const primaryImage = images[0] || '/guns/pistol.svg'
 
   // Resolve specifications from Supabase `specs` (text array) or API `ingredients`
   let specsList = []
@@ -58,8 +68,8 @@ export const normalizeProduct = (item) => {
     caliber: item.caliber || 'Standard',
     price: Number(item.price ?? item.cook_time ?? 0),
     description: item.description || '',
-    image_url: item.image_url || item.image || '/guns/pistol.svg',
-    image: item.image_url || item.image || '/guns/pistol.svg',
+    image_url: primaryImage,
+    image: primaryImage,
     images,
     ingredients: specsList,
     steps: stepsList,
@@ -167,8 +177,9 @@ class GunService {
         price: Number(data.price ?? data.cook_time ?? 0),
         description: data.description || '',
         specs: specsArray,
-        image_url: data.image_url || null,
-        ...(Array.isArray(data.images) ? { images: data.images } : {}),
+        image_url: Array.isArray(data.images) && data.images.length > 1
+          ? JSON.stringify(data.images)
+          : data.image_url || data.images?.[0] || null,
       }
 
       const res = await apiClient.post('/rest/v1/products', payload, {
@@ -205,8 +216,11 @@ class GunService {
       }
       if (data.description !== undefined) payload.description = data.description
       if (specsArray !== undefined) payload.specs = specsArray
-      if (data.image_url !== undefined) payload.image_url = data.image_url
-      if (Array.isArray(data.images)) payload.images = data.images
+      if (data.image_url !== undefined || Array.isArray(data.images)) {
+        payload.image_url = Array.isArray(data.images) && data.images.length > 1
+          ? JSON.stringify(data.images)
+          : data.image_url || data.images?.[0] || null
+      }
 
       const res = await apiClient.patch(`/rest/v1/products?id=eq.${id}`, payload, {
         headers: { Prefer: 'return=representation' },

@@ -184,9 +184,11 @@ export default function CreateGunPage({ onBack, onSuccess }) {
       if (urls.length) {
         setUploadedImageUrls(urls)
         setUploadedImageUrl(urls[0])
+        setImagePreviews(urls)
+        setImagePreview(urls[0])
         setCurrentStep('form')
       } else {
-        throw new Error(result.message || 'Image upload failed.')
+        throw new Error('Image upload failed.')
       }
     } catch (err) {
       console.warn('Upload API failed, falling back to local preview:', err)
@@ -416,23 +418,29 @@ export default function CreateGunPage({ onBack, onSuccess }) {
             </div>
           ) : (
             <div className="preview-container">
-              <div className="preview-image-wrap">
-                <img src={imagePreview} alt="Hardware preview" className="preview-img" />
-                <button
-                  type="button"
-                  className="preview-remove-btn"
-                  onClick={() => {
-                    setImageFile(null)
-                    setImageFiles([])
-                    setImagePreview(null)
-                    setImagePreviews([])
-                    setUploadedImageUrl('')
-                    setUploadedImageUrls([])
-                  }}
-                  title="Remove image"
-                >
-                  <X size={18} />
-                </button>
+              <div className="preview-gallery">
+                {(imagePreviews.length ? imagePreviews : [imagePreview]).map((url, index) => (
+                  <div className="preview-image-wrap" key={`${url}-${index}`}>
+                    <img src={url} alt={`Hardware preview ${index + 1}`} className="preview-img" />
+                    {index === 0 && (
+                      <button
+                        type="button"
+                        className="preview-remove-btn"
+                        onClick={() => {
+                          setImageFile(null)
+                          setImageFiles([])
+                          setImagePreview(null)
+                          setImagePreviews([])
+                          setUploadedImageUrl('')
+                          setUploadedImageUrls([])
+                        }}
+                        title="Remove images"
+                      >
+                        <X size={18} />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
 
               <div className="preview-actions">
@@ -457,6 +465,7 @@ export default function CreateGunPage({ onBack, onSuccess }) {
                   className="btn btn--outline"
                   onClick={() => {
                     setUploadedImageUrl(imagePreview)
+                    setUploadedImageUrls(imagePreviews.length ? imagePreviews : [imagePreview])
                     setCurrentStep('form')
                   }}
                 >
@@ -473,7 +482,11 @@ export default function CreateGunPage({ onBack, onSuccess }) {
         <form onSubmit={handleSubmit} className="entry-form">
           {/* Active Image Thumbnail */}
           <div className="selected-thumb-bar">
-            <img src={uploadedImageUrl || imagePreview} alt="Selected" className="thumb-small" />
+            <div className="selected-thumb-gallery">
+              {(uploadedImageUrls.length ? uploadedImageUrls : [uploadedImageUrl || imagePreview]).map((url, index) => (
+                <img key={`${url}-${index}`} src={url} alt={`Selected ${index + 1}`} className="thumb-small" />
+              ))}
+            </div>
             <div className="thumb-info">
               <span className="thumb-title">Imagery Assigned</span>
               <span className="thumb-sub">{Math.max(uploadedImageUrls.length, 1)} image{uploadedImageUrls.length === 1 ? '' : 's'} ready for registration</span>
