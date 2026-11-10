@@ -175,24 +175,11 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
       setError('Each image must be JPG, PNG, or WebP under 5MB.')
       return
     }
-    setImageFiles((previousFiles) => {
-      const mergedFiles = [...previousFiles, ...files].filter(
-        (file, index, allFiles) =>
-          allFiles.findIndex((candidate) => (
-            candidate.name === file.name &&
-            candidate.size === file.size &&
-            candidate.lastModified === file.lastModified
-          )) === index,
-      )
-      setImageFile(mergedFiles[0])
-      return mergedFiles
-    })
-    setImagePreviews((previousPreviews) => [
-      ...previousPreviews,
-      ...files.map((file) => URL.createObjectURL(file)),
-    ])
-    setImagePreview((previousPreview) => previousPreview || URL.createObjectURL(files[0]))
-    e.target.value = ''
+    setImageFiles(files)
+    setImageFile(files[0])
+    const previews = files.map((file) => URL.createObjectURL(file))
+    setImagePreviews(previews)
+    setImagePreview(previews[0])
     setError('')
   }
 
@@ -383,7 +370,7 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
                 className="hidden-file-input"
               />
               <label htmlFor="edit-gun-image" className="btn btn--outline btn--sm">
-                <Upload size={14} /> Select One or More Image Files
+                <Upload size={14} /> Select New Image File
               </label>
 
               {imageFile && (
