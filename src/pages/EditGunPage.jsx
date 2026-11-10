@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft,
-  Upload,
   X,
   Plus,
   Loader,
@@ -186,11 +185,24 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
     }
 
     const previews = files.map((file) => URL.createObjectURL(file))
-    setImageFiles(files)
+    setImageFiles((previous) => [...previous, ...files])
     setImageFile(files[0])
-    setImagePreviews(previews)
-    setImagePreview(previews[0])
+    setImagePreviews((previous) => [...previous, ...previews])
+    setImagePreview((previous) => previous || previews[0])
     setError('')
+  }
+
+  const removeImage = (index) => {
+    if (index < currentImageUrls.length) {
+      const nextUrls = currentImageUrls.filter((_, imageIndex) => imageIndex !== index)
+      setCurrentImageUrls(nextUrls)
+      setCurrentImageUrl(nextUrls[0] || '')
+      return
+    }
+    const pendingIndex = index - currentImageUrls.length
+    setImagePreviews((previous) => previous.filter((_, imageIndex) => imageIndex !== pendingIndex))
+    setImageFiles((previous) => previous.filter((_, fileIndex) => fileIndex !== pendingIndex))
+    setImageFile(null)
   }
 
   const handleUploadNewImage = async () => {
@@ -203,8 +215,9 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
         return res.data.url
       })
       if (urls.length) {
-        setCurrentImageUrls(urls)
-        setCurrentImageUrl(urls[0])
+        const allUrls = [...currentImageUrls, ...urls]
+        setCurrentImageUrls(allUrls)
+        setCurrentImageUrl(allUrls[0])
         setImageFile(null)
         setImageFiles([])
         setImagePreview(null)
@@ -374,13 +387,11 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
           <h2 className="card-box-title">Visual Asset</h2>
           <div className="edit-img-wrap">
             <div className="edit-image-gallery">
-              {(imagePreviews.length ? imagePreviews : currentImageUrls.length ? currentImageUrls : [currentImageUrl]).map((url, index) => (
-                <img
-                  key={`${url}-${index}`}
-                  src={url}
-                  alt={`Current hardware ${index + 1}`}
-                  className="edit-current-img"
-                />
+              {(currentImageUrls.length ? currentImageUrls : [currentImageUrl]).concat(imagePreviews).map((url, index) => (
+                <div className="edit-image-item" key={`${url}-${index}`}>
+                  <img src={url} alt={`Current hardware ${index + 1}`} className="edit-current-img" />
+                  <button type="button" className="preview-remove-btn" onClick={() => removeImage(index)} aria-label={`Remove image ${index + 1}`}><X size={14} /></button>
+                </div>
               ))}
             </div>
             <div className="edit-img-controls">
@@ -393,7 +404,7 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
                 className="hidden-file-input"
               />
               <label htmlFor="edit-gun-image" className="btn btn--outline btn--sm">
-                <Upload size={14} /> Select Image Files
+                <Plus size={14} /> Add Image Files
               </label>
 
               {imageFile && (

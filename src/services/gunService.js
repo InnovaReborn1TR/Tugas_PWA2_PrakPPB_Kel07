@@ -12,7 +12,7 @@ import {
 export const normalizeProduct = (item) => {
   if (!item) return null
 
-  let storedImages = item.images
+  let storedImages = item.images || item.image_urls
   if (!Array.isArray(storedImages) && typeof item.image_url === 'string') {
     try {
       const parsed = JSON.parse(item.image_url)
@@ -177,10 +177,9 @@ class GunService {
         price: Number(data.price ?? data.cook_time ?? 0),
         description: data.description || '',
         specs: specsArray,
-        image_url: Array.isArray(data.images) && data.images.length > 1
-          ? JSON.stringify(data.images)
-          : data.image_url || data.images?.[0] || null,
+        image_url: data.image_url || data.images?.[0] || null,
       }
+      if (Array.isArray(data.images)) payload.image_urls = data.images
 
       const res = await apiClient.post('/rest/v1/products', payload, {
         headers: { Prefer: 'return=representation' },
@@ -217,10 +216,9 @@ class GunService {
       if (data.description !== undefined) payload.description = data.description
       if (specsArray !== undefined) payload.specs = specsArray
       if (data.image_url !== undefined || Array.isArray(data.images)) {
-        payload.image_url = Array.isArray(data.images) && data.images.length > 1
-          ? JSON.stringify(data.images)
-          : data.image_url || data.images?.[0] || null
+        payload.image_url = data.image_url || data.images?.[0] || null
       }
+      if (Array.isArray(data.images)) payload.image_urls = data.images
 
       const res = await apiClient.patch(`/rest/v1/products?id=eq.${id}`, payload, {
         headers: { Prefer: 'return=representation' },

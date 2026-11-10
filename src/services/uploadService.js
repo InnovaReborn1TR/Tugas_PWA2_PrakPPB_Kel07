@@ -53,13 +53,7 @@ class UploadService {
         }
       } catch (err) {
         console.warn('Supabase bucket upload not accessible, creating base64 data URL:', err)
-        // Read file as base64 Data URL so the image displays and persists
-        const dataUrl = await new Promise((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result)
-          reader.onerror = reject
-          reader.readAsDataURL(file)
-        })
+        const dataUrl = await this.toCompressedDataUrl(file)
 
         return {
           success: true,
@@ -78,6 +72,33 @@ class UploadService {
     })
 
     return response.data
+  }
+
+  toCompressedDataUrl(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const image = new Image()
+        image.onload = () => {
+          const maxDimension = 1600
+          const scale = Math.min(1, maxDimension / Math.max(image.width, image.height))
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.max(1, Math.round(image.width * scale))
+          canvas.height = Math.max(1, Math.round(image.height * scale))
+          const context = canvas.getContext('2d')
+          if (!context) {
+            reject(new Error('Unable to prepare image for upload.'))
+            return
+          }
+          context.drawImage(image, 0, 0, canvas.width, canvas.height)
+          resolve(canvas.toDataURL('image/jpeg', 0.8))
+        }
+        image.onerror = () => reject(new Error('Unable to read image for upload.'))
+        image.src = reader.result
+      }
+      reader.onerror = () => reject(new Error('Unable to read image file.'))
+      reader.readAsDataURL(file)
+    })
   }
 }
 

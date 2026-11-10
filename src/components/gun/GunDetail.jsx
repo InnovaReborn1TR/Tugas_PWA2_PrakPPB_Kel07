@@ -28,8 +28,8 @@ import { shareCatalog } from '../../utils/share'
 export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) {
   const imgSrc = gun.image_url || gun.image || '/guns/pistol.svg'
   const images = Array.isArray(gun.images) && gun.images.length ? gun.images : [imgSrc]
-  const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const safeImageIndex = Math.min(activeImageIndex, images.length - 1)
+  const [activeImage, setActiveImage] = useState(0)
+  const activeImageIndex = Math.min(activeImage, images.length - 1)
   const category = gun.type || gun.category || '—'
   const caliber = gun.caliber || gun.difficulty || ''
   const price = gun.price ?? gun.cook_time ?? 0
@@ -48,12 +48,6 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
 
   const avgRating = gun.average_rating || averageRating(reviews)
   const reviewCount = gun.review_count ?? reviews.length
-  const showPreviousImage = () => {
-    setActiveImageIndex((index) => (index - 1 + images.length) % images.length)
-  }
-  const showNextImage = () => {
-    setActiveImageIndex((index) => (index + 1) % images.length)
-  }
 
   const handleSubmitReview = async (e) => {
     e.preventDefault()
@@ -128,8 +122,8 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
           <div className="detail-gallery-stage">
             <img
               className="detail-img"
-              src={images[safeImageIndex]}
-              alt={`${gun.name} view ${safeImageIndex + 1} of ${images.length}`}
+              src={images[activeImageIndex]}
+              alt={`${gun.name} view ${activeImageIndex + 1} of ${images.length}`}
               width="520"
               height="390"
               loading="eager"
@@ -137,20 +131,10 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
             />
             {images.length > 1 && (
               <>
-                <button
-                  type="button"
-                  className="detail-gallery-control detail-gallery-control--prev"
-                  onClick={showPreviousImage}
-                  aria-label="Show previous catalog image"
-                >
+                <button type="button" className="detail-gallery-control detail-gallery-control--prev" onClick={() => setActiveImage((index) => (index - 1 + images.length) % images.length)} aria-label="Previous catalog image">
                   <ChevronLeft size={22} />
                 </button>
-                <button
-                  type="button"
-                  className="detail-gallery-control detail-gallery-control--next"
-                  onClick={showNextImage}
-                  aria-label="Show next catalog image"
-                >
+                <button type="button" className="detail-gallery-control detail-gallery-control--next" onClick={() => setActiveImage((index) => (index + 1) % images.length)} aria-label="Next catalog image">
                   <ChevronRight size={22} />
                 </button>
               </>
@@ -162,10 +146,10 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
                 <button
                   key={`${image}-${index}`}
                   type="button"
-                  className={`detail-gallery-dot ${index === safeImageIndex ? 'detail-gallery-dot--active' : ''}`}
-                  onClick={() => setActiveImageIndex(index)}
+                  className={`detail-gallery-dot ${index === activeImageIndex ? 'detail-gallery-dot--active' : ''}`}
+                  onClick={() => setActiveImage(index)}
                   role="tab"
-                  aria-selected={index === safeImageIndex}
+                  aria-selected={index === activeImageIndex}
                   aria-label={`Show catalog image ${index + 1}`}
                 />
               ))}

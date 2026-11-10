@@ -142,11 +142,25 @@ export default function CreateGunPage({ onBack, onSuccess }) {
     }
 
     const previews = files.map((file) => URL.createObjectURL(file))
-    setImageFiles(files)
+    setImageFiles((previous) => [...previous, ...files])
     setImageFile(files[0])
-    setImagePreviews(previews)
-    setImagePreview(previews[0])
+    setImagePreviews((previous) => [...previous, ...previews])
+    setImagePreview((previous) => previous || previews[0])
     setError('')
+  }
+
+  const removeSelectedImage = (index) => {
+    const uploadedCount = uploadedImageUrls.length
+    setImagePreviews((previous) => previous.filter((_, imageIndex) => imageIndex !== index))
+    if (index < uploadedCount) {
+      setUploadedImageUrls((previous) => previous.filter((_, imageIndex) => imageIndex !== index))
+    } else {
+      const pendingIndex = index - uploadedCount
+      setImageFiles((previous) => previous.filter((_, fileIndex) => fileIndex !== pendingIndex))
+    }
+    const nextPrimary = imagePreviews.filter((_, imageIndex) => imageIndex !== index)[0] || ''
+    setImagePreview(nextPrimary || null)
+    setUploadedImageUrl(nextPrimary)
   }
 
   // Quick fallback select vector from local assets
@@ -182,10 +196,13 @@ export default function CreateGunPage({ onBack, onSuccess }) {
         return result.data.url
       })
       if (urls.length) {
-        setUploadedImageUrls(urls)
-        setUploadedImageUrl(urls[0])
-        setImagePreviews(urls)
-        setImagePreview(urls[0])
+        const allUrls = [...uploadedImageUrls, ...urls]
+        setUploadedImageUrls(allUrls)
+        setUploadedImageUrl(allUrls[0])
+        setImagePreviews(allUrls)
+        setImagePreview(allUrls[0])
+        setImageFiles([])
+        setImageFile(null)
         setCurrentStep('form')
       } else {
         throw new Error('Image upload failed.')
@@ -422,28 +439,18 @@ export default function CreateGunPage({ onBack, onSuccess }) {
                 {(imagePreviews.length ? imagePreviews : [imagePreview]).map((url, index) => (
                   <div className="preview-image-wrap" key={`${url}-${index}`}>
                     <img src={url} alt={`Hardware preview ${index + 1}`} className="preview-img" />
-                    {index === 0 && (
-                      <button
-                        type="button"
-                        className="preview-remove-btn"
-                        onClick={() => {
-                          setImageFile(null)
-                          setImageFiles([])
-                          setImagePreview(null)
-                          setImagePreviews([])
-                          setUploadedImageUrl('')
-                          setUploadedImageUrls([])
-                        }}
-                        title="Remove images"
-                      >
-                        <X size={18} />
-                      </button>
-                    )}
+                    <button type="button" className="preview-remove-btn" onClick={() => removeSelectedImage(index)} title={`Remove image ${index + 1}`} aria-label={`Remove image ${index + 1}`}>
+                      <X size={18} />
+                    </button>
                   </div>
                 ))}
               </div>
 
               <div className="preview-actions">
+                <label htmlFor="gun-image-input-more" className="btn btn--outline">
+                  <Plus size={18} /> Add more images
+                </label>
+                <input id="gun-image-input-more" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleImageChange} className="hidden-file-input" />
                 <button
                   type="button"
                   className="btn btn--primary"
@@ -483,13 +490,18 @@ export default function CreateGunPage({ onBack, onSuccess }) {
           {/* Active Image Thumbnail */}
           <div className="selected-thumb-bar">
             <div className="selected-thumb-gallery">
-              {(uploadedImageUrls.length ? uploadedImageUrls : [uploadedImageUrl || imagePreview]).map((url, index) => (
-                <img key={`${url}-${index}`} src={url} alt={`Selected ${index + 1}`} className="thumb-small" />
+              {(imagePreviews.length ? imagePreviews : [uploadedImageUrl || imagePreview]).map((url, index) => (
+                <div className="selected-thumb" key={`${url}-${index}`}>
+                  <img src={url} alt={`Selected ${index + 1}`} className="thumb-small" />
+                  <button type="button" className="thumb-remove-btn" onClick={() => removeSelectedImage(index)} aria-label={`Remove image ${index + 1}`}><X size={12} /></button>
+                </div>
               ))}
             </div>
             <div className="thumb-info">
               <span className="thumb-title">Imagery Assigned</span>
-              <span className="thumb-sub">{Math.max(uploadedImageUrls.length, 1)} image{uploadedImageUrls.length === 1 ? '' : 's'} ready for registration</span>
+              <span className="thumb-sub">{Math.max(imagePreviews.length, 1)} image{imagePreviews.length === 1 ? '' : 's'} ready for registration</span>
+              <label htmlFor="gun-image-input-form" className="link-btn">Add more images</label>
+              <input id="gun-image-input-form" type="file" multiple accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleImageChange} className="hidden-file-input" />
             </div>
             <button
               type="button"
