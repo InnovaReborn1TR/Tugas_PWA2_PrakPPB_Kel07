@@ -391,16 +391,6 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
               )}
             </div>
           </div>
-          {imagePreviews.length > 1 && (
-            <div className="upload-preview-grid" aria-label={`${imagePreviews.length} selected replacement images`}>
-              {imagePreviews.map((preview, index) => (
-                <img key={`${preview}-${index}`} src={preview} alt={`Replacement image ${index + 1}`} className="upload-preview-thumb" loading="lazy" />
-              ))}
-            </div>
-          )}
-          {imageUrls.length > 1 && !imagePreviews.length && (
-            <p className="form-hint">{imageUrls.length} images currently attached to this catalog.</p>
-          )}
         </div>
 
         {/* Core fields */}

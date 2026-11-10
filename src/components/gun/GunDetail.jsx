@@ -17,11 +17,10 @@ import { shareCatalog } from '../../utils/share'
  * @param {Function} [props.onDelete]— trigger delete flow
  */
 export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) {
+  const imgSrc = gun.image_url || gun.image || '/guns/pistol.svg'
   const imageUrls = Array.isArray(gun.image_urls) && gun.image_urls.length > 0
     ? gun.image_urls
-    : [gun.image_url || gun.image || '/guns/pistol.svg']
-  const [selectedImage, setSelectedImage] = useState(imageUrls[0])
-  const imgSrc = selectedImage || imageUrls[0]
+    : [imgSrc]
   const category = gun.type || gun.category || '—'
   const caliber = gun.caliber || gun.difficulty || ''
   const price = gun.price ?? gun.cook_time ?? 0
@@ -115,16 +114,7 @@ export default function GunDetail({ gun, onBack, onEdit, onDelete, onArchive }) 
           {imageUrls.length > 1 && (
             <div className="detail-gallery-thumbs" aria-label="Catalog images">
               {imageUrls.map((url, index) => (
-                <button
-                  key={`${url}-${index}`}
-                  type="button"
-                  className={`detail-gallery-thumb ${url === selectedImage ? 'active' : ''}`}
-                  onClick={() => setSelectedImage(url)}
-                  aria-label={`Show image ${index + 1} of ${gun.name}`}
-                  aria-pressed={url === selectedImage}
-                >
-                  <img src={url} alt="" loading="lazy" decoding="async" />
-                </button>
+                <img key={`${url}-${index}`} src={url} alt={`${gun.name} ${index + 1}`} loading="lazy" decoding="async" />
               ))}
             </div>
           )}
