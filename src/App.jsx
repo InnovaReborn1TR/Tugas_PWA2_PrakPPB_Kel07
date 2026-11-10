@@ -75,9 +75,18 @@ function App() {
     }
   }
 
-  const handleArchive = (gun) => {
-    setArchived(gun.id, true)
-    handleBackToList()
+  const handleArchive = async (gun) => {
+    try {
+      if (!String(gun.id).startsWith('local-')) {
+        await gunService.updateGun(gun.id, { is_archived: true })
+      }
+      setArchived(gun.id, true)
+      handleBackToList()
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent('catalog:feedback', {
+        detail: error.message || 'Unable to archive catalog.',
+      }))
+    }
   }
 
   return (

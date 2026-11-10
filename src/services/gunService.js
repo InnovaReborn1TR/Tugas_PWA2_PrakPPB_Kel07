@@ -214,6 +214,7 @@ class GunService {
         payload.price = Number(data.price ?? data.cook_time ?? 0)
       }
       if (data.description !== undefined) payload.description = data.description
+      if (data.is_archived !== undefined) payload.is_archived = Boolean(data.is_archived)
       if (specsArray !== undefined) payload.specs = specsArray
       if (data.image_url !== undefined || Array.isArray(data.images)) {
         payload.image_url = data.image_url || data.images?.[0] || null

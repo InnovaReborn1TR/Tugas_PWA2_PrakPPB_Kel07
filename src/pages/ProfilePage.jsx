@@ -48,7 +48,9 @@ export default function ProfilePage({ onReplaySplash, onNavigate }) {
   const catalogGuns = [...guns, ...localGuns].filter((gun, index, list) => (
     list.findIndex((item) => String(item.id) === String(gun.id)) === index
   ))
-  const archivedGuns = catalogGuns.filter((gun) => archivedIds.includes(String(gun.id)))
+  const archivedGuns = catalogGuns.filter((gun) => (
+    gun.is_archived || archivedIds.includes(String(gun.id))
+  ))
 
   const notify = (message) => {
     setFeedback(message)
@@ -95,11 +97,25 @@ export default function ProfilePage({ onReplaySplash, onNavigate }) {
       if (!String(gun.id).startsWith('local-')) {
         await gunService.deleteGun(gun.id)
       }
+
       removeArchived(gun.id)
       setArchiveVersion((version) => version + 1)
       notify('Catalog permanently deleted.')
     } catch (error) {
       notify(error.message || 'Unable to permanently delete catalog.')
+    }
+  }
+
+  const handleRestore = async (gun) => {
+    try {
+      if (!String(gun.id).startsWith('local-')) {
+        await gunService.updateGun(gun.id, { is_archived: false })
+      }
+      removeArchived(gun.id)
+      setArchiveVersion((version) => version + 1)
+      notify('Catalog restored.')
+    } catch (error) {
+      notify(error.message || 'Unable to restore catalog.')
     }
   }
 
@@ -178,7 +194,7 @@ export default function ProfilePage({ onReplaySplash, onNavigate }) {
       <section className="profile-section">
         <div className="section-title-row"><h2 className="section-title">Archived Catalogs</h2><span className="count">{archivedGuns.length}</span></div>
         {archivedGuns.length === 0 ? <p className="detail-empty">No archived catalogs.</p> : (
-          <ul className="profile-list">{archivedGuns.map((gun) => <li key={gun.id} className="profile-list-item"><div><strong>{gun.name}</strong><small>{gun.type || 'Catalog'}</small></div><div className="profile-list-actions"><button type="button" className="btn btn--outline btn--sm" onClick={() => { removeArchived(gun.id); setArchiveVersion((version) => version + 1) }}><RotateCcw size={14} /> Restore</button><button type="button" className="btn btn--danger-ghost" onClick={() => handlePermanentDelete(gun)}><Trash2 size={14} /> Delete forever</button></div></li>)}</ul>
+          <ul className="profile-list">{archivedGuns.map((gun) => <li key={gun.id} className="profile-list-item"><div><strong>{gun.name}</strong><small>{gun.type || 'Catalog'}</small></div><div className="profile-list-actions"><button type="button" className="btn btn--outline btn--sm" onClick={() => handleRestore(gun)}><RotateCcw size={14} /> Restore</button><button type="button" className="btn btn--danger-ghost" onClick={() => handlePermanentDelete(gun)}><Trash2 size={14} /> Delete forever</button></div></li>)}</ul>
         )}
       </section>
 

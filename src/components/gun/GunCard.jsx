@@ -1,6 +1,6 @@
 import FavoriteButton from '../common/FavoriteButton'
 import { formatPrice, truncate } from '../../utils/helpers'
-import { Share2 } from 'lucide-react'
+import { Archive, Share2 } from 'lucide-react'
 import { shareCatalog } from '../../utils/share'
 
 /**
@@ -108,7 +108,7 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete, onArchive }) 
             aria-label={`Archive ${gun.name}`}
             title="Archive"
           >
-            Archive
+            <Archive size={15} />
           </button>
         )}
       </div>

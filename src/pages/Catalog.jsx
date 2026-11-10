@@ -47,9 +47,9 @@ export default function Catalog({ onNavigate }) {
       // Enrich local data with synthetic ids so FavoriteButton and detail work
       return GUNS_LOCAL
         .map((g, i) => ({ ...g, id: g.id || `local-${i}` }))
-        .filter((gun) => !archivedIds.includes(String(gun.id)))
+        .filter((gun) => !gun.is_archived && !archivedIds.includes(String(gun.id)))
     }
-    return apiGuns.filter((gun) => !archivedIds.includes(String(gun.id)))
+    return apiGuns.filter((gun) => !gun.is_archived && !archivedIds.includes(String(gun.id)))
   }, [apiGuns, error, useLocal, archivedIds])
 
   // ---- filters / sort ----
@@ -70,10 +70,17 @@ export default function Catalog({ onNavigate }) {
   // ---- detail view ----
   const [selectedGun, setSelectedGun] = useState(null)
 
-  const handleArchive = (gun) => {
-    setArchived(gun.id, true)
-    setSelectedGun(null)
-    setArchiveVersion((version) => version + 1)
+  const handleArchive = async (gun) => {
+    try {
+      if (!String(gun.id).startsWith('local-')) {
+        await gunService.updateGun(gun.id, { is_archived: true })
+      }
+      setArchived(gun.id, true)
+      setSelectedGun(null)
+      setArchiveVersion((version) => version + 1)
+    } catch (error) {
+      setFeedback(error.message || 'Unable to archive catalog.')
+    }
   }
 
   // ---- delete ----
