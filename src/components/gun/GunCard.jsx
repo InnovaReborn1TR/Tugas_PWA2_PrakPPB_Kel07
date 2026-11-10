@@ -13,10 +13,7 @@ import { shareCatalog } from '../../utils/share'
  * @param {Function} [props.onDelete]— called when Delete is clicked (admin)
  */
 export default function GunCard({ gun, onSelect, onEdit, onDelete, onArchive }) {
-  const imageUrls = Array.isArray(gun.image_urls) && gun.image_urls.length > 0
-    ? gun.image_urls
-    : [gun.image_url || gun.image || '/guns/pistol.svg']
-  const imgSrc = imageUrls[0]
+  const imgSrc = gun.image_url || gun.image || '/guns/pistol.svg'
   const category = gun.type || gun.category || '—'
   const caliber = gun.caliber || gun.difficulty || ''
   const price = gun.price ?? gun.cook_time ?? 0
@@ -46,23 +43,6 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete, onArchive }) 
           loading="lazy"
           decoding="async"
         />
-        {imageUrls.length > 1 && (
-          <span className="card-gallery" aria-label={`${imageUrls.length} catalog images`}>
-            {imageUrls.slice(0, 4).map((url, index) => (
-              <img
-                key={`${url}-${index}`}
-                className="card-gallery-thumb"
-                src={url}
-                alt=""
-                loading="lazy"
-                decoding="async"
-              />
-            ))}
-            {imageUrls.length > 4 && (
-              <span className="card-gallery-more">+{imageUrls.length - 4}</span>
-            )}
-          </span>
-        )}
 
         <span className="name display">{gun.name}</span>
 
