@@ -134,11 +134,24 @@ export default function CreateGunPage({ onBack, onSuccess }) {
       setError('Each image must be JPG, PNG, or WebP under 5MB.')
       return
     }
-    setImageFiles(files)
-    const previews = files.map((file) => URL.createObjectURL(file))
-    setImageFile(files[0])
-    setImagePreview(previews[0])
-    setImagePreviews(previews)
+    setImageFiles((previousFiles) => {
+      const mergedFiles = [...previousFiles, ...files].filter(
+        (file, index, allFiles) =>
+          allFiles.findIndex((candidate) => (
+            candidate.name === file.name &&
+            candidate.size === file.size &&
+            candidate.lastModified === file.lastModified
+          )) === index,
+      )
+      setImageFile(mergedFiles[0])
+      return mergedFiles
+    })
+    setImagePreviews((previousPreviews) => [
+      ...previousPreviews,
+      ...files.map((file) => URL.createObjectURL(file)),
+    ])
+    setImagePreview((previousPreview) => previousPreview || URL.createObjectURL(files[0]))
+    e.target.value = ''
     setError('')
   }
 
@@ -372,8 +385,8 @@ export default function CreateGunPage({ onBack, onSuccess }) {
               />
               <label htmlFor="gun-image-input" className="upload-label">
                 <Upload size={36} className="upload-icon" />
-                <span className="upload-main-text">Click to choose an image file</span>
-                <span className="upload-sub-text">JPG, PNG, or WebP up to 5MB</span>
+                <span className="upload-main-text">Click to choose one or more image files</span>
+                <span className="upload-sub-text">Select multiple JPG, PNG, or WebP files (up to 5MB each)</span>
               </label>
 
               <div className="preset-selector">
@@ -429,6 +442,9 @@ export default function CreateGunPage({ onBack, onSuccess }) {
               )}
               {imagePreviews.length > 1 && (
                 <p className="form-hint">{imagePreviews.length} images selected. They will be saved to this catalog.</p>
+              )}
+              {imagePreviews.length === 1 && (
+                <p className="form-hint">1 image selected. You can choose more files using the file selector again.</p>
               )}
 
               <div className="preview-actions">
