@@ -1,5 +1,7 @@
 import FavoriteButton from '../common/FavoriteButton'
 import { formatPrice, truncate } from '../../utils/helpers'
+import { Share2 } from 'lucide-react'
+import { shareCatalog } from '../../utils/share'
 
 /**
  * Product card used in the catalog grid.
@@ -10,7 +12,7 @@ import { formatPrice, truncate } from '../../utils/helpers'
  * @param {Function} [props.onEdit]  — called when Edit is clicked (admin)
  * @param {Function} [props.onDelete]— called when Delete is clicked (admin)
  */
-export default function GunCard({ gun, onSelect, onEdit, onDelete }) {
+export default function GunCard({ gun, onSelect, onEdit, onDelete, onArchive }) {
   const imgSrc = gun.image_url || gun.image || '/guns/pistol.svg'
   const category = gun.type || gun.category || '—'
   const caliber = gun.caliber || gun.difficulty || ''
@@ -72,6 +74,41 @@ export default function GunCard({ gun, onSelect, onEdit, onDelete }) {
             title="Delete"
           >
             🗑️
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="card-act-btn"
+          onClick={async (e) => {
+            e.stopPropagation()
+            try {
+              const result = await shareCatalog(gun)
+              window.dispatchEvent(new CustomEvent('catalog:feedback', {
+                detail: result === 'shared' ? 'Catalog shared.' : 'Catalog link copied.',
+              }))
+            } catch (error) {
+              if (error?.name !== 'AbortError') window.dispatchEvent(new CustomEvent('catalog:feedback', {
+                detail: error.message || 'Unable to share catalog.',
+                error: true,
+              }))
+            }
+          }}
+          aria-label={`Share ${gun.name}`}
+          title="Share"
+        >
+          <Share2 size={15} />
+        </button>
+
+        {onArchive && (
+          <button
+            type="button"
+            className="card-act-btn"
+            onClick={(e) => { e.stopPropagation(); onArchive(gun) }}
+            aria-label={`Archive ${gun.name}`}
+            title="Archive"
+          >
+            Archive
           </button>
         )}
       </div>

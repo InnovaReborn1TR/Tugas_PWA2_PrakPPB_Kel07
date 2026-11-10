@@ -18,10 +18,14 @@ class ReviewService {
         ? data.map((r) => ({
             id: r.id,
             product_id: r.product_id,
+            owner_id: r.user_id,
             user_identifier: r.user_id ? `Operator ${String(r.user_id).substring(0, 8)}` : 'Anonymous',
             rating: r.rating,
             comment: r.comment || '',
             created_at: r.created_at,
+            likes: Number(r.likes || r.like_count || 0),
+            dislikes: Number(r.dislikes || r.dislike_count || 0),
+            user_reaction: r.user_reaction || null,
           }))
         : []
 
@@ -84,6 +88,30 @@ class ReviewService {
     }
 
     return apiClient.delete(`/api/v1/reviews/${reviewId}`)
+  }
+
+  async reactToReview(reviewId, reaction, userIdentifier) {
+    if (reaction !== null && !['like', 'dislike'].includes(reaction)) {
+      throw new Error('Invalid review reaction.')
+    }
+
+    if (IS_SUPABASE) {
+      if (reaction === null) {
+        await apiClient.delete(`/rest/v1/review_reactions?review_id=eq.${reviewId}&user_id=eq.${encodeURIComponent(userIdentifier)}`)
+        return { success: true }
+      }
+      const res = await apiClient.post('/rest/v1/review_reactions', {
+        review_id: reviewId,
+        user_id: userIdentifier,
+        reaction,
+      }, { headers: { Prefer: 'return=representation' } })
+      return { success: true, data: Array.isArray(res) ? res[0] : res }
+    }
+
+    return apiClient.post(`/api/v1/reviews/${reviewId}/reaction`, {
+      user_identifier: userIdentifier,
+      reaction,
+    })
   }
 }
 

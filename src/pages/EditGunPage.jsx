@@ -46,8 +46,11 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
   })
 
   const [currentImageUrl, setCurrentImageUrl] = useState('')
+  const [currentImageUrls, setCurrentImageUrls] = useState([])
   const [imageFile, setImageFile] = useState(null)
+  const [imageFiles, setImageFiles] = useState([])
   const [imagePreview, setImagePreview] = useState(null)
+  const [imagePreviews, setImagePreviews] = useState([])
   const [uploading, setUploading] = useState(false)
 
   // Specs & Steps
@@ -88,7 +91,11 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
             servings: data.servings || 1,
             is_featured: Boolean(data.is_featured),
           })
-          setCurrentImageUrl(data.image_url || data.image || '/guns/pistol.svg')
+          const images = Array.isArray(data.images) && data.images.length
+            ? data.images
+            : [data.image_url || data.image || '/guns/pistol.svg']
+          setCurrentImageUrls(images)
+          setCurrentImageUrl(images[0])
 
           if (data.ingredients && data.ingredients.length > 0) {
             setSpecs(data.ingredients.map((ing) => ({
@@ -134,6 +141,10 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
       if (draft.imagePreview) {
         setImagePreview(draft.imagePreview)
       }
+      if (draft.imagePreviews) {
+        setImagePreviews(draft.imagePreviews)
+        setImagePreview(draft.imagePreviews[0])
+      }
       setShowDraftModal(false)
       setSuccessMsg('Saved draft restored.')
       setTimeout(() => setSuccessMsg(''), 3000)
@@ -152,6 +163,7 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
       specs,
       steps,
       imagePreview: imagePreview || currentImageUrl,
+      imagePreviews: imagePreviews.length ? imagePreviews : currentImageUrls,
     }
     const saved = saveDraft(draftData, targetId)
     if (saved) {
@@ -164,22 +176,20 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
 
   // Handle new image file
   const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File size exceeds 5MB limit.')
-      return
-    }
-
     const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    if (!allowed.includes(file.type)) {
-      setError('Allowed formats: .jpg, .jpeg, .png, .webp')
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    const invalid = files.find((file) => file.size > 5 * 1024 * 1024 || !allowed.includes(file.type))
+    if (invalid) {
+      setError('Each image must be JPG, PNG, or WebP and under 5MB.')
       return
     }
 
-    setImageFile(file)
-    setImagePreview(URL.createObjectURL(file))
+    const previews = files.map((file) => URL.createObjectURL(file))
+    setImageFiles(files)
+    setImageFile(files[0])
+    setImagePreviews(previews)
+    setImagePreview(previews[0])
     setError('')
   }
 
@@ -187,19 +197,30 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
     if (!imageFile) return
     try {
       setUploading(true)
-      const res = await uploadService.uploadImage(imageFile)
-      if (res.success && res.data?.url) {
-        setCurrentImageUrl(res.data.url)
+      const results = await Promise.all((imageFiles.length ? imageFiles : [imageFile]).map((file) => uploadService.uploadImage(file)))
+      const urls = results.map((res) => {
+        if (!res.success || !res.data?.url) throw new Error(res.message || 'Image upload failed.')
+        return res.data.url
+      })
+      if (urls.length) {
+        setCurrentImageUrls(urls)
+        setCurrentImageUrl(urls[0])
         setImageFile(null)
+        setImageFiles([])
         setImagePreview(null)
+        setImagePreviews([])
         setSuccessMsg('New image uploaded successfully.')
         setTimeout(() => setSuccessMsg(''), 3000)
       }
     } catch (err) {
       console.warn('Image upload failed, using local blob:', err)
-      setCurrentImageUrl(imagePreview)
+      const urls = imagePreviews.length ? imagePreviews : [imagePreview]
+      setCurrentImageUrls(urls)
+      setCurrentImageUrl(urls[0])
       setImageFile(null)
+      setImageFiles([])
       setImagePreview(null)
+      setImagePreviews([])
     } finally {
       setUploading(false)
     }
@@ -273,6 +294,7 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
       category: formData.category || 'makanan',
       description: formData.description.trim() || `${formData.type} caliber ${formData.caliber}.`,
       image_url: imagePreview || currentImageUrl || '/guns/pistol.svg',
+      images: currentImageUrls.length ? currentImageUrls : [imagePreview || currentImageUrl || '/guns/pistol.svg'],
       prep_time: 15,
       cook_time: Number(formData.price) || 500,
       servings: Number(formData.servings) || 1,
@@ -360,12 +382,13 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
               <input
                 id="edit-gun-image"
                 type="file"
+                multiple
                 accept="image/jpeg,image/jpg,image/png,image/webp"
                 onChange={handleImageChange}
                 className="hidden-file-input"
               />
               <label htmlFor="edit-gun-image" className="btn btn--outline btn--sm">
-                <Upload size={14} /> Select New Image File
+                <Upload size={14} /> Select Image Files
               </label>
 
               {imageFile && (
@@ -382,6 +405,7 @@ export default function EditGunPage({ gun, gunId, onBack, onSuccess }) {
                   ) : (
                     'Upload to MinIO'
                   )}
+                  <span className="thumb-sub">{Math.max(currentImageUrls.length, 1)} image{currentImageUrls.length === 1 ? '' : 's'} attached</span>
                 </button>
               )}
             </div>

@@ -24,3 +24,5 @@ export const setArchived = (id, archived) => {
   write(ids)
   return archived
 }
+
+export const removeArchived = (id) => setArchived(id, false)

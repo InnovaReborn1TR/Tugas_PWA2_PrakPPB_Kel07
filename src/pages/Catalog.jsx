@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { RefreshCw, Plus, Loader, AlertCircle, PackageOpen } from 'lucide-react'
 import { useGuns } from '../hooks/useGuns'
 import GUNS_LOCAL from '../data/guns'
@@ -7,6 +7,7 @@ import GunDetail from '../components/gun/GunDetail'
 import AdvancedFilter from '../components/common/AdvancedFilter'
 import ConfirmModal from '../components/modals/ConfirmModal'
 import gunService from '../services/gunService'
+import { getArchivedIds, setArchived } from '../utils/archiveStorage'
 import {
   matchesSearch,
   matchesCategory,
@@ -27,15 +28,29 @@ export default function Catalog({ onNavigate }) {
   // ---- API data ----
   const { guns: apiGuns, loading, error, refetch } = useGuns({ limit: 50 })
   const [useLocal, setUseLocal] = useState(false)
+  const [, setArchiveVersion] = useState(0)
+  const [feedback, setFeedback] = useState('')
+  const archivedIds = getArchivedIds()
+
+  useEffect(() => {
+    const handleFeedback = (event) => {
+      setFeedback(event.detail)
+      setTimeout(() => setFeedback(''), 2500)
+    }
+    window.addEventListener('catalog:feedback', handleFeedback)
+    return () => window.removeEventListener('catalog:feedback', handleFeedback)
+  }, [])
 
   // Decide data source
   const rawGuns = useMemo(() => {
     if (useLocal || (error && apiGuns.length === 0)) {
       // Enrich local data with synthetic ids so FavoriteButton and detail work
-      return GUNS_LOCAL.map((g, i) => ({ ...g, id: g.id || `local-${i}` }))
+      return GUNS_LOCAL
+        .map((g, i) => ({ ...g, id: g.id || `local-${i}` }))
+        .filter((gun) => !archivedIds.includes(String(gun.id)))
     }
-    return apiGuns
-  }, [apiGuns, error, useLocal])
+    return apiGuns.filter((gun) => !archivedIds.includes(String(gun.id)))
+  }, [apiGuns, error, useLocal, archivedIds])
 
   // ---- filters / sort ----
   const [search, setSearch] = useState('')
@@ -54,6 +69,12 @@ export default function Catalog({ onNavigate }) {
 
   // ---- detail view ----
   const [selectedGun, setSelectedGun] = useState(null)
+
+  const handleArchive = (gun) => {
+    setArchived(gun.id, true)
+    setSelectedGun(null)
+    setArchiveVersion((version) => version + 1)
+  }
 
   // ---- delete ----
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -83,6 +104,7 @@ export default function Catalog({ onNavigate }) {
         onBack={() => setSelectedGun(null)}
         onEdit={(g) => onNavigate && onNavigate('Edit', g)}
         onDelete={(g) => { setSelectedGun(null); setDeleteTarget(g) }}
+        onArchive={handleArchive}
       />
     )
   }
@@ -173,6 +195,7 @@ export default function Catalog({ onNavigate }) {
                 onSelect={setSelectedGun}
                 onEdit={onNavigate ? (g) => onNavigate('Edit', g) : undefined}
                 onDelete={setDeleteTarget}
+                onArchive={handleArchive}
               />
             ))}
           </ul>
@@ -206,6 +229,7 @@ export default function Catalog({ onNavigate }) {
       {deleteError && (
         <div className="toast toast--error">{deleteError}</div>
       )}
+      {feedback && <div className="toast toast--success">{feedback}</div>}
     </>
   )
 }

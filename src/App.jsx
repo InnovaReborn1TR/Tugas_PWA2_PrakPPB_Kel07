@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import Catalog from './pages/Catalog.jsx'
@@ -7,12 +7,14 @@ import ProfilePage from './pages/ProfilePage.jsx'
 import CreateGunPage from './pages/CreateGunPage.jsx'
 import EditGunPage from './pages/EditGunPage.jsx'
 import GunDetail from './components/gun/GunDetail.jsx'
-import About from './pages/About.jsx'
-import Contact from './pages/Contact.jsx'
 import PWABadge from './components/PWABadge.jsx'
 import ConfirmModal from './components/modals/ConfirmModal.jsx'
 import SplashScreen from './components/common/SplashScreen.jsx'
 import gunService from './services/gunService.js'
+import { getCatalogIdFromUrl } from './utils/share.js'
+import { useGunById } from './hooks/useGuns.js'
+import { setArchived } from './utils/archiveStorage.js'
+import GUNS_LOCAL from './data/guns'
 import './App.css'
 
 function App() {
@@ -23,6 +25,21 @@ function App() {
   const [editingGun, setEditingGun] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  const sharedCatalogId = getCatalogIdFromUrl()
+  const localSharedGun = GUNS_LOCAL.find((gun, index) => (
+    String(gun.id || `local-${index}`) === String(sharedCatalogId)
+  ))
+  const apiSharedId = sharedCatalogId && !String(sharedCatalogId).startsWith('local-')
+    ? sharedCatalogId
+    : null
+  const { gun: sharedGun, loading: sharedGunLoading, error: sharedGunError } = useGunById(apiSharedId)
+
+  useEffect(() => {
+    if (!sharedCatalogId) return
+    setMode('detail')
+    if (localSharedGun) setSelectedGun({ ...localSharedGun, id: sharedCatalogId })
+    else if (sharedGun) setSelectedGun(sharedGun)
+  }, [sharedCatalogId, localSharedGun, sharedGun])
 
   // Unified navigation handler
   const handleNavigate = (target, payload) => {
@@ -51,6 +68,16 @@ function App() {
     setMode('list')
     setSelectedGun(null)
     setEditingGun(null)
+    if (getCatalogIdFromUrl()) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('catalog')
+      window.history.replaceState({}, '', url)
+    }
+  }
+
+  const handleArchive = (gun) => {
+    setArchived(gun.id, true)
+    handleBackToList()
   }
 
   return (
@@ -89,12 +116,26 @@ function App() {
           />
         )}
 
+        {mode === 'detail' && sharedCatalogId && !selectedGun && (
+          <div className="state-box state-box--error" role="alert">
+            <p>
+              {sharedGunLoading
+                ? 'Loading shared catalog…'
+                : sharedGunError || 'Shared catalog was not found.'}
+            </p>
+            <button type="button" className="btn btn--outline" onClick={handleBackToList}>
+              Back to Catalog
+            </button>
+          </div>
+        )}
+
         {mode === 'detail' && selectedGun && (
           <GunDetail
             gun={selectedGun}
             onBack={handleBackToList}
             onEdit={(g) => handleNavigate('Edit', g)}
             onDelete={(g) => setDeleteTarget(g)}
+            onArchive={handleArchive}
           />
         )}
 
@@ -113,10 +154,11 @@ function App() {
               />
             )}
             {tab === 'Profile' && (
-              <ProfilePage onReplaySplash={() => setShowSplash(true)} />
+              <ProfilePage
+                onReplaySplash={() => setShowSplash(true)}
+                onNavigate={handleNavigate}
+              />
             )}
-            {tab === 'About' && <About />}
-            {tab === 'Contact' && <Contact />}
           </>
         )}
       </main>
